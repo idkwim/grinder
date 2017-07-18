@@ -1,5 +1,5 @@
 <?php
-	// Copyright (c) 2012, Stephen Fewer of Harmony Security (www.harmonysecurity.com)
+	// Copyright (c) 2014, Stephen Fewer of Harmony Security (www.harmonysecurity.com)
 	// Licensed under a 3 clause BSD license (Please see LICENSE.txt)
 	// Source code located at https://github.com/stephenfewer/grinder
 	
@@ -48,7 +48,9 @@
 			notes text NOT NULL,
 			log_data mediumblob NOT NULL,
 			crash_data mediumblob NOT NULL,
-			PRIMARY KEY (id)
+			PRIMARY KEY (id),
+			UNIQUE KEY id (id),
+			KEY hash_quick (hash_quick)
 		);";
 			
 		$result = mysql_query( $table_crashes_sql );
@@ -57,7 +59,7 @@
 			echo "Failed (" . htmlentities( mysql_error() ) . ").</p>";
 			return false;
 		}
-		
+				
 		$table_nodes_sql = "CREATE TABLE IF NOT EXISTS nodes (
 			name varchar(32) NOT NULL,
 			crashes int(11) NOT NULL DEFAULT 0,
@@ -260,7 +262,7 @@
 		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
 		<title>Grinder - Install</title>
 		<meta name="robots" content="noindex"/>
-		<meta name="copyright" content="Copyright (c) 2011, Harmony Security." />
+		<meta name="copyright" content="Copyright (c) 2014, Harmony Security." />
 		<link rel="shortcut icon" type="image/x-icon" href="favicon.ico"/>
 		<link type="text/css" href="scripts/jquery/css/ui-lightness/jquery-ui-1.8.16.custom.css" rel="stylesheet" />	
 		<link type="text/css" href="style.css" rel="stylesheet" />	
@@ -421,7 +423,7 @@
 				{
 					echo "<h3>Welcome</h3>
 							<div style='margin-left:30px;'>
-								<p>Welcome to the Grinder installer. Please create a MySQL database and associated user before continuing. The database user must have SELECT, UPDATE, CREATE, DELETE and INSERT privileges. The Grinder Key below must match that of your Grinder Nodes.</p>
+								<p>Welcome to the Grinder installer. Please create a MySQL database and associated user before continuing. The database user must have SELECT, UPDATE, CREATE, DELETE, ALTER and INSERT privileges. The Grinder Key below must match that of your Grinder Nodes.</p>
 							</div>
 							
 							<h3>Settings</h3>

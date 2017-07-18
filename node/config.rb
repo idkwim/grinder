@@ -49,6 +49,9 @@ $server_address           = '127.0.0.1'
 # If you are runnning more than one node on the same system you will need to change this to avoid a conflict.
 $server_port              = 8080
 
+# Set this to true if you want to generate mini crash dumps.
+$save_minidump            = false
+
 ################################################################################
 #                     You probably dont need to edit these                     #
 ################################################################################
@@ -71,6 +74,10 @@ $swap_fuzzer_count        = 10000
 # Set to nil to disable this feature. Must be greater than 5 minutes.
 $debugger_restart_minutes = 30
 
+# Enable or disable the logging of debug messages from a browser.
+# Note: is left commented out, it will default to true for all browsers except FireFox.
+#$log_debug_messages       = true
+
 # Configure the internet explorer browser...
 # Note: %PROGRAMFILES32% gets resolved to 'Program Files' on 32-bit systems and 'Program Files (x86)' on 64-bit systems.
 $internetexplorer_exe     = 'C:\\%PROGRAM_FILES_32%\\Internet Explorer\\iexplore.exe'
@@ -78,7 +85,7 @@ $internetexplorer_exe     = 'C:\\%PROGRAM_FILES_32%\\Internet Explorer\\iexplore
 $internetexplorer_logmods = [ 'mshtml.dll', 'iepeers.dll', 'urlmon.dll', 'msxml3.dll','jscript.dll', 'jscript9.dll', 'ieframe.dll' ]
 
 # Configure the chrome browser...
-$chrome_exe               = 'C:\\Users\\%USERNAME%\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe'
+$chrome_exe               = 'C:\\%PROGRAM_FILES_32%\\Google\\Chrome\\Application\\chrome.exe'
 
 # Configure the firefox browser...
 $firefox_exe              = 'C:\\%PROGRAM_FILES_32%\\Mozilla Firefox\\firefox.exe'

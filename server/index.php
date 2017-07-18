@@ -1,5 +1,5 @@
 <?php
-	// Copyright (c) 2012, Stephen Fewer of Harmony Security (www.harmonysecurity.com)
+	// Copyright (c) 2014, Stephen Fewer of Harmony Security (www.harmonysecurity.com)
 	// Licensed under a 3 clause BSD license (Please see LICENSE.txt)
 	// Source code located at https://github.com/stephenfewer/grinder
 	
@@ -175,8 +175,7 @@
 						$.cookie( 'grinder-tab', ui.index, { expires: 31 } );
 					},
 					selected: $.cookie( 'grinder-tab' ) ? parseInt( $.cookie( 'grinder-tab' ) ) : 0
-				} );
-
+				} );				
 				$( "#login_button" ).button().click( function() {
 				
 					if( getUsername().length == 0  )
@@ -206,7 +205,11 @@
 							location.href = location.href;
 					});
 				} );
-				
+				$( "#password" ).keypress(function(e) {
+					if(e.which == 13) {
+						$( "#login_button" ).button().click();
+					}
+				});				
 				$( "#logout_button" ).button( { icons: { primary: "ui-icon-eject" } } ).click( function() {
 					$.post( 'index.php', { action:'logout' }, function( data ) {
 						location.href = location.href.substr( 0, location.href.indexOf( '#', 0 ) );
@@ -249,15 +252,15 @@
 					height: 600,
 					modal: true,
 					buttons: {
-						//Delete: function() {
-						//	deleteCrash();
-						//},
 						Update: function() {
 							updateCrash();
 						},
+						Delete: function() {
+							deleteCrash();
+						},
 						Cancel: function() {
 							$( this ).dialog( "close" );
-						}
+						}						
 					}
 					
 				});
@@ -314,7 +317,7 @@
 							
 								<p>Please login to the system.</p>
 								<div style='margin-left:30px;'>
-									<p>Username: <input id='username' value=''></input></p>
+									<p>Username: <input id='username' value='' autofocus='autofocus'></input></p>
 									<p>Password: <input id='password' type='password' value=''></input></p>
 									<button id='login_button'>Login...</button>
 								</div>
@@ -329,14 +332,14 @@
 		<div id="error-message"></div>
 		
 		<div id="about-message">
-			<p>Version: 0.5-Dev</p>
+			<p>Version: 0.7-Dev</p>
 			<p>Author: Stephen Fewer of Harmony Security (<a href='http://www.harmonysecurity.com/' target='_blank'>www.harmonysecurity.com</a>)</p>
 			<p>Source Code: <a href='https://github.com/stephenfewer/grinder' target='_blank'>github.com/stephenfewer/grinder</a></p>
 		</div>
 		
 		<center>
 			<div id='footer'>
-				<a onclick='$( "#about-message" ).dialog( "open" );' href='#'>Grinder v0.5-Dev</a>
+				<a onclick='$( "#about-message" ).dialog( "open" );' href='#'>Grinder v0.7-Dev</a>
 			</div>
 		</center>
 		

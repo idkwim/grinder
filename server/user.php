@@ -1,11 +1,11 @@
 <?php
-	// Copyright (c) 2012, Stephen Fewer of Harmony Security (www.harmonysecurity.com)
+	// Copyright (c) 2014, Stephen Fewer of Harmony Security (www.harmonysecurity.com)
 	// Licensed under a 3 clause BSD license (Please see LICENSE.txt)
 	// Source code located at https://github.com/stephenfewer/grinder
 	
 	function user_isloggedin()
 	{
-		if( session_is_registered( 'id' ) and session_is_registered( 'username' ) and session_is_registered( 'grinderkey' ) )
+		if( isset( $_SESSION['id'] ) and isset( $_SESSION['username'] ) and isset( $_SESSION['grinderkey'] ) )
 		{
 			if( $_SESSION['grinderkey'] == GRINDER_KEY )
 				return true;
@@ -15,7 +15,7 @@
 	
 	function user_isadministrator()
 	{
-		if( user_isloggedin() and session_is_registered( 'type' ) and $_SESSION['type'] == 0 )
+		if( user_isloggedin() and isset( $_SESSION['type'] ) and $_SESSION['type'] == 0 )
 			return true;
 		return false;
 	}
@@ -116,7 +116,7 @@
 		
 		if( user_isadministrator() )
 		{
-			if( user_valid_password( $password ) or !ser_valid_username( $name ) )
+			if( user_valid_password( $password ) and user_valid_username( $name ) )
 			{
 				$sql  = "INSERT INTO users ( name, email, password, type ) VALUES ";
 				$sql .= "( '" . mysql_real_escape_string( $name ) . "', '" . mysql_real_escape_string( $email ) . "', '" . mysql_real_escape_string( sha1( GRINDER_SALT . $password ) ) . "', '" . mysql_real_escape_string( $type ) . "' );";
@@ -177,6 +177,125 @@
 		return $success;
 	}
 
+	// Here we place any routines that must run to update an old version of the DB to the current expected schema.
+	function update_db()
+	{
+		// If index doesn't exist, add an index to crashes for hash_quick to get a perf boost (credit: Jason Kratzer).
+		$result1 = mysql_query( "SELECT * FROM INFORMATION_SCHEMA.STATISTICS WHERE table_name = 'crashes' AND COLUMN_NAME = 'hash_quick';" );
+		if( $result1 )
+		{
+			if( mysql_num_rows( $result1 ) == 0 )
+			{
+				$result2 = mysql_query( "ALTER TABLE crashes ADD INDEX (hash_quick);" );
+				if( $result2 )
+					mysql_free_result( $result2 );
+			}
+			
+			mysql_free_result( $result1 );
+		}
+		
+		// Pull out the current DB schema version, or 0 if it doesn't exist...
+		$schema_version = 0;
+		
+		$result1 = mysql_query( "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE table_name = 'grinder';" );
+		if( $result1 )
+		{
+			if( mysql_num_rows( $result1 ) > 0 )
+			{
+				$result2 = mysql_query( "SELECT schema_version FROM grinder;" );
+				if( $result2 )
+				{
+					if( mysql_num_rows( $result2 ) == 1 )
+					{
+						$row = mysql_fetch_array( $result2 );
+						
+						$schema_version = intval( $row['schema_version'] ) + 1;
+					}
+					
+					mysql_free_result( $result2 );
+				}
+			}
+			
+			mysql_free_result( $result1 );
+		}
+		
+		// Migrate the DB schema from its current version to the latest version...
+		while( $schema_version <= 1 )
+		{	
+			switch( $schema_version )
+			{
+				case 0:
+				{
+					$migrate0 = mysql_query( "CREATE TABLE IF NOT EXISTS grinder ( schema_version int(11) NOT NULL DEFAULT 0 );" );
+					if( $migrate0 )
+					{
+						mysql_free_result( $migrate0 );
+						
+						$migrate0 = mysql_query( "INSERT INTO grinder ( schema_version ) VALUES ( '0' );" );
+						if( $migrate0 )
+							mysql_free_result( $migrate0 );
+					}
+
+					break;
+				}
+				case 1:
+				{
+					// previously verified interesting == 1 and uninteresting ==2.
+					// we want to migrate this so that verified interesting == 2 and uninteresting == 1.
+
+					$t1_success = false;
+					
+					mysql_query( "START TRANSACTION;" );
+					
+					do
+					{
+						if( !mysql_query( "UPDATE crashes SET verified='12345' WHERE verified='2';" ) )
+							break;
+							
+						if( !mysql_query( "UPDATE crashes SET verified='2' WHERE verified='1';" ) )
+							break;
+							
+						if( !mysql_query( "UPDATE crashes SET verified='1' WHERE verified='12345';" ) )
+							break;
+							
+						$t1_success = true;
+						
+					} while( 0 );
+					
+					if( $t1_success )
+						mysql_query( "COMMIT;" );
+					else
+						mysql_query( "ROLLBACK;" );
+						
+					break;
+				}
+				/*case 2:
+				{
+					// Note: update the while loop above to be <= 2.
+					$sql = "";
+					$migrate2 = mysql_query( $sql );
+					if( $migrate2 )
+						mysql_free_result( $migrate2 );
+						
+					break;
+				}*/
+				default:
+				{
+					break;
+				}
+			}
+			
+			if( $schema_version > 0 )
+			{
+				$migrate = mysql_query( "UPDATE grinder SET schema_version='" . $schema_version . "';" );
+				if( $migrate )
+					mysql_free_result( $migrate );
+			}	
+			
+			$schema_version += 1;
+		}
+	}
+	
 	function user_login( $username, $password )
 	{
 		$success = false;
@@ -205,6 +324,8 @@
 					mysql_free_result( $result2 );
 					
 				$success = true;
+
+				update_db();
 			}
 			
 			mysql_free_result( $result );

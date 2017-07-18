@@ -1,6 +1,6 @@
 /*
 *
-* Copyright (c) 2012, Stephen Fewer of Harmony Security (www.harmonysecurity.com)
+* Copyright (c) 2014, Stephen Fewer of Harmony Security (www.harmonysecurity.com)
 * Licensed under a 3 clause BSD license (Please see LICENSE.txt)
 * Source code located at https://github.com/stephenfewer/grinder
 *
@@ -33,6 +33,11 @@ BOOL CALLBACK enumproc( HWND hWnd, LPARAM lParam )
 			return FALSE;
 		}
 		else if( strcmp( cString, "Quit Firefox" ) == 0 )
+		{
+			SendMessage( hWnd, BM_CLICK, 0 , 0 );
+			return FALSE;
+		}
+		else if( strcmp( cString, "Do&n't allow" ) == 0 )
 		{
 			SendMessage( hWnd, BM_CLICK, 0 , 0 );
 			return FALSE;

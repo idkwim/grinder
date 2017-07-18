@@ -1,5 +1,5 @@
 <?php
-	// Copyright (c) 2012, Stephen Fewer of Harmony Security (www.harmonysecurity.com)
+	// Copyright (c) 2014, Stephen Fewer of Harmony Security (www.harmonysecurity.com)
 	// Licensed under a 3 clause BSD license (Please see LICENSE.txt)
 	// Source code located at https://github.com/stephenfewer/grinder
 	
@@ -10,8 +10,8 @@
 	require_once 'config.php';
 	
 	$verified_unknown       = 0;
-	$verified_interesting   = 1;
-	$verified_uninteresting = 2;
+	$verified_uninteresting = 1;
+	$verified_interesting   = 2;
 	$verified_exploitable   = 3;
 	
 	function update_node_crash_status( $node, $time )

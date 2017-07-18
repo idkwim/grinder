@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Stephen Fewer of Harmony Security (www.harmonysecurity.com)
+ * Copyright (c) 2014, Stephen Fewer of Harmony Security (www.harmonysecurity.com)
  * Licensed under a 3 clause BSD license (Please see LICENSE.txt)
  * Source code located at https://github.com/stephenfewer/grinder
  * 
@@ -23,10 +23,10 @@ function rand_item( arr )
 	return arr[ rand( arr.length ) ];
 }
 
-// Itterate over an object to simulate 'tickling' the object. This is usefull during
-// testcase creating/reduction in order to trigger the origional crash. If you comment
+// Iterate over an object to simulate 'tickling' the object. This is useful during
+// testcase creating/reduction in order to trigger the original crash. If you comment
 // your fuzzer with log code comments of "/* tickle( OBJ ); */" then these comments
-// can be removed to tickle the object. Use where you itterate over an object looking
+// can be removed to tickle the object. Use where you iterate over an object looking
 // for a property/function/...
 function tickle( obj )
 {
@@ -41,7 +41,7 @@ function tickle( obj )
 }
 
 // The logger class used to perform in-memory logging from a fuzzer.
-// This is linked with the backend via the injected grinder_logger.dll which
+// This is linked with the back end via the injected grinder_logger.dll which
 // will hook the JavaScript parseFloat function and intercept any messages
 // passed in by the logger class and write them to disk.
 function LOGGER( name )
@@ -56,23 +56,38 @@ function LOGGER( name )
 	
 	this.gc = function()
 	{
-		var i;
 		if( this.browser == 'IE' )
 		{
-			CollectGarbage();
+			try
+			{
+				var arr = [];
+				
+				for( var i=0 ; i<(100000/0x34)+1 ; i++ )
+					arr.push( document.createElement( 'div' ) );
+				
+				arr = null;
+				
+				CollectGarbage();
+			}
+			catch( e1 ){}
 		}
 		else if( this.browser == 'CM' )
 		{
-			p = [];
-			q = Array( 100 ).join( unescape( '%u7F7F' ) );
-			for( i=25000; i > 0 ; i-- ) 
-				p.push( new String( q ) );
+			if( typeof window.gc != 'undefined' )
+			{
+				window.gc();
+			}
+			else
+			{
+				for( f=[], i=0 ; i<30000 ; i++ )
+					f.push( new String( "ABCD" ) );
+			}
 		}
-		else
+		/*else
 		{
-		    //for( i=0; i < 10000; i++ )
-			//	var s = new String( unescape( '%u7F7F%u7F7F' ) );
-		}
+		    for( i=0; i < 10000; i++ )
+				var s = new String( unescape( '%u7F7F%u7F7F' ) );
+		}*/
 	};
 	
 	this.get_browser = function()
@@ -80,6 +95,8 @@ function LOGGER( name )
 		if( /Firefox[\/\s](\d+\.\d+)/.test(navigator.userAgent) )
 			return "FF";
 		else if( /MSIE (\d+\.\d+);/.test(navigator.userAgent) )
+			return "IE";
+		else if( /Trident\//.test(navigator.userAgent) )
 			return "IE";
 		else if( /Chrome/.test(navigator.userAgent) )
 			return "CM";
@@ -188,7 +205,7 @@ function LOGGER( name )
 	};
 	
 	// Used to log a message from the fuzzer to the log file on disk. This is how we recreate testcases at a later stage.
-	// You must log the JavaScript lines of code you wish to record. The message paramater is a string containing a line
+	// You must log the JavaScript lines of code you wish to record. The message parameter is a string containing a line
 	// of JavaScript. The location string parameter is optional, and can describe where in your fuzzer this log message came from.
 	// The count number parameter is optional and defines how many times to execute the log message when recreating the testcase.
 	// Note: Currently only logging string messages is supported, but future support for logging nested messages via an array
@@ -200,7 +217,7 @@ function LOGGER( name )
 	//         id_0.src = 'AAAAAAAA';
 	//     }
 	//
-	// The for() loop is never emmitted if you log a count value of 1.
+	// The for() loop is never emitted if you log a count value of 1.
 	//
 	// You can log code comments as follows: logger.log( "/* tickle( id_0 ); */", "tweak_params" );
 	// When recreating a testcase the code comment will be written as a code comment by default, but also may be uncommented 
@@ -243,9 +260,6 @@ function LOGGER( name )
 			}
 		}
 		
-		//if( idx == 111 )
-		//	this.debugbreak();
-			
 		return last_idx;
 	};
 	

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2012, Stephen Fewer of Harmony Security (www.harmonysecurity.com)
+# Copyright (c) 2014, Stephen Fewer of Harmony Security (www.harmonysecurity.com)
 # Licensed under a 3 clause BSD license (Please see LICENSE.txt)
 # Source code located at https://github.com/stephenfewer/grinder
 #
@@ -26,18 +26,29 @@ module Grinder
 			end
 			
 			def loaders( pid, path, addr )
+				# Sanity check in case a 64bit version comes out.
+				if( @os_process.addrsz == 64 )
+					print_error( "64-bit Chrome not supported." )
+					return
+				end
+				
 				if( path.include?( 'chrome.dll' ) )
 					@browser = 'CM'
 					if( not @attached[pid].jscript_loaded )
-						@attached[pid].jscript_loaded = loader_javascript_chrome( pid, addr )
+						@attached[pid].jscript_loaded = loader_javascript_chrome( pid, addr, 'chrome.dll' )
+					end
+				elsif( path.include?( 'chrome_child.dll' ) )
+					@browser = 'CM'
+					if( not @attached[pid].jscript_loaded )
+						@attached[pid].jscript_loaded = loader_javascript_chrome( pid, addr, 'chrome_child.dll' )
 					end
 				end
 				@attached[pid].all_loaded = @attached[pid].jscript_loaded
 			end
 			
 			# hook chrome.dll!v8::internal::Runtime_StringParseFloat to call LOGGER_logMessage/LOGGER_finishedTest
-			def loader_javascript_chrome( pid, imagebase )
-				print_status( "chrome.dll DLL loaded into process #{pid} at address 0x#{'%08X' % imagebase }" )
+			def loader_javascript_chrome( pid, imagebase, chrome_dll )
+				print_status( "#{chrome_dll} DLL loaded into process #{pid} at address 0x#{'%08X' % imagebase }" )
 				
 				if( not @attached[pid].logmessage or not @attached[pid].finishedtest )
 					print_error( "Unable to hook JavaScript parseFloat() in process #{pid}, grinder_logger.dll not injected." )
@@ -46,24 +57,24 @@ module Grinder
 				
 				symbol     = 'v8::internal::Runtime_StringParseFloat'
 				
-				parsefloat = @attached[pid].name2address( imagebase, "chrome.dll", symbol )
+				parsefloat = @attached[pid].name2address( imagebase, chrome_dll, symbol )
 				
 				if( not parsefloat )
-					print_error( "Unable to resolved chrome.dll!#{symbol}")
+					print_error( "Unable to resolved #{chrome_dll}!#{symbol}")
 					return false
 				end
 				
-				print_status( "Resolved chrome.dll!#{symbol} @ 0x#{'%08X' % parsefloat }" )
+				print_status( "Resolved #{chrome_dll}!#{symbol} @ 0x#{'%08X' % parsefloat }" )
 				
-				cpu        = Metasm::Ia32.new
+				cpu        = ::Metasm::Ia32.new
 				
 				patch_size = 6
 				
-				backup     = @mem[pid][parsefloat,patch_size]
+				backup     = @os_process.memory[parsefloat,patch_size]
 				
-				proxy_addr = Metasm::WinAPI.virtualallocex( @hprocess[pid], 0, 1024, Metasm::WinAPI::MEM_COMMIT|Metasm::WinAPI::MEM_RESERVE, Metasm::WinAPI::PAGE_EXECUTE_READWRITE )
+				proxy_addr = ::Metasm::WinAPI.virtualallocex( @os_process.handle, 0, 1024, ::Metasm::WinAPI::MEM_COMMIT|Metasm::WinAPI::MEM_RESERVE, ::Metasm::WinAPI::PAGE_EXECUTE_READWRITE )
 				
-				proxy = Metasm::Shellcode.assemble( cpu, %Q{
+				proxy = ::Metasm::Shellcode.assemble( cpu, %Q{
 					pushfd
 					pushad
 					mov eax,dword ptr [esp+0x08+0x24]
@@ -112,11 +123,11 @@ module Grinder
 				
 				proxy << backup
 				
-				proxy << jmp5( (parsefloat+backup.length), (proxy_addr+proxy.length) )
+				proxy << encode_jmp( (parsefloat+backup.length), (proxy_addr+proxy.length) )
 				
-				@mem[pid][proxy_addr, proxy.length] = proxy
+				@os_process.memory[proxy_addr, proxy.length] = proxy
 				
-				@mem[pid][parsefloat,patch_size]    = jmp5( proxy_addr, parsefloat ) + "\x90" * (patch_size - 5)
+				@os_process.memory[parsefloat,patch_size]    = encode_jmp( proxy_addr, parsefloat, patch_size )
 				
 				print_status( "Hooked JavaScript parseFloat() to grinder_logger.dll via proxy @ 0x#{'%08X' % proxy_addr }" )
 				

@@ -1,5 +1,5 @@
 <?php
-	// Copyright (c) 2012, Stephen Fewer of Harmony Security (www.harmonysecurity.com)
+	// Copyright (c) 2014, Stephen Fewer of Harmony Security (www.harmonysecurity.com)
 	// Licensed under a 3 clause BSD license (Please see LICENSE.txt)
 	// Source code located at https://github.com/stephenfewer/grinder
 	
@@ -24,12 +24,42 @@
 	
 	function delete_crash( $id )
 	{
-		// XXX: we need to minus one from the respective nodes crashes
-		/*$sql = "DELETE FROM crashes WHERE id='" . $id . "' LIMIT 1;";
-		
-		if( !mysql_query( $sql ) )
+		//get node name
+		$nodeName = '';
+		$sql    = "SELECT node FROM crashes WHERE id='" . $id . "' LIMIT 1;";
+		$result = mysql_query( $sql );
+		if( $result )
+		{
+			if( mysql_num_rows( $result ) == 1 )
+			{
+				$row  = mysql_fetch_array( $result );
+				$nodeName = $row['node']; 
+			}
+			else
+			{
+				return false;
+			}
+			mysql_free_result( $result );
+		}
+		else
+		{
 			return false;
-		*/
+		}
+		//now delete the crash log
+		$delete_sql = "DELETE FROM crashes WHERE id='" . $id . "' LIMIT 1";
+		if( !mysql_query( $delete_sql ) )
+		{
+			return false;
+		}
+		//update the count of crashes from the node
+		$update_sql = "UPDATE `nodes` SET `crashes`=(`crashes` - 1) WHERE `name`='" . $nodeName . "';";
+		$result = mysql_query( $update_sql );
+		if( !$result )
+		{
+			mysql_free_result( $result );
+			return false;
+		}
+		
 		return true;
 	}
 
@@ -109,7 +139,7 @@
 							exit;
 						}
 					}
-					break;
+					break;			
 				default:
 					break;
 			}
@@ -276,8 +306,8 @@
 				<tr><td>Verified: 
 					<select id='crash_verified'>
 						<option <?php if( $verified == 0 ){ echo 'selected="selected"'; } ?> >Unknown</option>
-						<option <?php if( $verified == 1 ){ echo 'selected="selected"'; } ?> >Interesting</option>
-						<option <?php if( $verified == 2 ){ echo 'selected="selected"'; } ?> >Uninteresting</option>
+						<option <?php if( $verified == 1 ){ echo 'selected="selected"'; } ?> >Uninteresting</option>
+						<option <?php if( $verified == 2 ){ echo 'selected="selected"'; } ?> >Interesting</option>
 						<option <?php if( $verified == 3 ){ echo 'selected="selected"'; } ?> >Exploitable</option>
 					</select></td>
 					
